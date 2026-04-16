@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APAC Data Center Strategy Map</title>
+    
+    <!-- Leaflet CSS + JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Map takes 70% */
+        #map {
+            flex: 3;
+            height: 100vh;
+        }
+        
+        /* Panel takes 30% */
+        .panel {
+            flex: 1;
+            background: #16213e;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #0f3460;
+        }
+        
+        .panel h1 {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            color: #e94560;
+        }
+        
+        .panel .subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 12px;
+        }
+        
+        .filter-group {
+            margin-bottom: 24px;
+        }
+        
+        .filter-group label {
+            display: block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #e94560;
+            margin-bottom: 8px;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            background: #0f3460;
+            border: 1px solid #1a1a2e;
+            color: white;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        .high { background: #00b894; color: #fff; }
+        .medium { background: #f39c12; color: #fff; }
+        .low { background: #e74c3c; color: #fff; }
+        
+        .market-list {
+            margin-top: 24px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .market-item {
+            background: #0f3460;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .market-item:hover {
+            background: #1a4a7a;
+            transform: translateX(-4px);
+        }
+        
+        .market-name {
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .market-mw {
+            font-size: 0.7rem;
+            color: #e94560;
+        }
+        
+        .market-scores {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 0.7rem;
+        }
+        
+        .legend {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #0f3460;
+            font-size: 0.7rem;
+        }
+        
+        .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="map"></div>
+    <div class="panel">
+        <h1>⚡ APAC Data Center Strategy Map</h1>
+        <div class="subtitle">100MW AI Cluster Site Selection — 2027 Outlook</div>
+        
+        <div class="filter-group">
+            <label>📊 Filter by Min. MW Capacity</label>
+            <select id="mwFilter">
+                <option value="0">All locations</option>
+                <option value="50">50+ MW</option>
+                <option value="100">100+ MW</option>
+                <option value="200">200+ MW</option>
+                <option value="300">300+ MW</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label>⚖️ Strategy Priority (affects bubble color)</label>
+            <select id="priorityFilter">
+                <option value="balanced">Balanced (Grid + Policy + Cost)</option>
+                <option value="grid">Grid First (power availability)</option>
+                <option value="policy">Policy First (incentives + permits)</option>
+                <option value="cost">Cost First (power price + land)</option>
+            </select>
+        </div>
+        
+        <div class="legend">
+            <div><span class="legend-dot" style="background: #00b894;"></span> High suitability (3.5–5.0)</div>
+            <div><span class="legend-dot" style="background: #f39c12;"></span> Medium suitability (2.0–3.4)</div>
+            <div><span class="legend-dot" style="background: #e74c3c;"></span> Low suitability (1.0–1.9)</div>
+            <div><span class="legend-dot" style="background: #aaa;"></span> Bubble size = MW capacity</div>
+        </div>
+        
+        <div class="market-list" id="marketList">
+            <!-- Will be populated by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================
+    // DATA: 15 APAC MARKETS (from APDCA report)
+    // ============================================
+    const markets = [
+        // Japan
+        { name: "Inzai, Japan", lat: 35.8, lng: 140.15, mw: 150, gridScore: 4, policyScore: 5, costScore: 3, notes: "Property tax doubled in 10 years → free school lunches. 'Ginza of Data Centers'." },
+        { name: "Tokyo, Japan", lat: 35.68, lng: 139.76, mw: 500, gridScore: 4, policyScore: 4, costScore: 2, notes: "AWS ¥5.57T projected GDP impact. Major hub." },
+        { name: "Osaka, Japan", lat: 34.69, lng: 135.5, mw: 300, gridScore: 4, policyScore: 4, costScore: 2, notes: "AWS second region. Growing AI cluster." },
+        
+        // Malaysia
+        { name: "Selangor, Malaysia", lat: 3.07, lng: 101.52, mw: 100, gridScore: 3, policyScore: 5, costScore: 4, notes: "Google's RM 15B impact. Green Lane Pathway for fast power." },
+        { name: "Johor, Malaysia", lat: 1.49, lng: 103.74, mw: 500, gridScore: 3, policyScore: 4, costScore: 4, notes: "Emerging hub near Singapore. Land abundant." },
+        
+        // Singapore
+        { name: "Singapore", lat: 1.35, lng: 103.82, mw: 1000, gridScore: 5, policyScore: 4, costScore: 1, notes: "Jobs pay 35% above avg. Land-constrained. Smart Nation 2.0." },
+        
+        // India
+        { name: "Chennai, India", lat: 13.08, lng: 80.28, mw: 200, gridScore: 3, policyScore: 3, costScore: 5, notes: "INR 200Cr GST revenue. Data center park in Ambattur." },
+        { name: "Mumbai, India", lat: 19.08, lng: 72.88, mw: 300, gridScore: 3, policyScore: 3, costScore: 4, notes: "Microsoft $9.5B impact. Major financial hub." },
+        { name: "Hyderabad, India", lat: 17.39, lng: 78.49, mw: 150, gridScore: 3, policyScore: 3, costScore: 4, notes: "Emerging tech hub. Lower land costs." },
+        
+        // Australia
+        { name: "Melbourne, Australia", lat: -37.81, lng: 144.96, mw: 300, gridScore: 5, policyScore: 3, costScore: 3, notes: "AWS AUD 15.9B impact. 14th best tech city globally." },
+        { name: "Sydney, Australia", lat: -33.87, lng: 151.21, mw: 200, gridScore: 5, policyScore: 3, costScore: 2, notes: "Major subsea cable hub. Higher land costs." },
+        
+        // Others (from report references)
+        { name: "Bangkok, Thailand", lat: 13.74, lng: 100.5, mw: 100, gridScore: 2, policyScore: 3, costScore: 4, notes: "Emerging market. Cloud First policy 2025." },
+        { name: "Jakarta, Indonesia", lat: -6.21, lng: 106.85, mw: 100, gridScore: 2, policyScore: 3, costScore: 4, notes: "Batam-Bintan corridor. Power price $0.11-0.12/kWh." },
+        { name: "Seoul, South Korea", lat: 37.57, lng: 126.98, mw: 200, gridScore: 4, policyScore: 3, costScore: 2, notes: "Seongcho-gu AI cluster. Gangnam Data Centre." },
+        { name: "Auckland, New Zealand", lat: -36.85, lng: 174.76, mw: 80, gridScore: 4, policyScore: 3, costScore: 3, notes: "Only APAC market in top 10 for renewable energy availability." }
+    ];
+    
+    // Calculate total score based on priority
+    function calculateScore(market, priority) {
+        let weights = { grid: 0.4, policy: 0.3, cost: 0.3 };
+        
+        switch(priority) {
+            case "grid":
+                weights = { grid: 0.7, policy: 0.15, cost: 0.15 };
+                break;
+            case "policy":
+                weights = { grid: 0.2, policy: 0.6, cost: 0.2 };
+                break;
+            case "cost":
+                weights = { grid: 0.2, policy: 0.2, cost: 0.6 };
+                break;
+            default: // balanced
+                weights = { grid: 0.4, policy: 0.3, cost: 0.3 };
+        }
+        
+        return (market.gridScore * weights.grid) + 
+               (market.policyScore * weights.policy) + 
+               (market.costScore * weights.cost);
+    }
+    
+    // Get color based on score
+    function getColor(score) {
+        if (score >= 3.5) return "#00b894";
+        if (score >= 2.0) return "#f39c12";
+        return "#e74c3c";
+    }
+    
+    // Get radius based on MW (scaled for map)
+    function getRadius(mw) {
+        return Math.sqrt(mw) * 1.5;
+    }
+    
+    // Initialize map
+    const map = L.map('map').setView([15, 110], 4);
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> & CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 19,
+        minZoom: 2
+    }).addTo(map);
+    
+    let markers = [];
+    let currentPriority = "balanced";
+    let currentMwFilter = 0;
+    
+    // Render function
+    function renderMap() {
+        // Clear existing markers
+        markers.forEach(marker => map.removeLayer(marker));
+        markers = [];
+        
+        // Filter and sort
+        let filtered = markets.filter(m => m.mw >= currentMwFilter);
+        filtered.sort((a,b) => b.mw - a.mw);
+        
+        // Update sidebar list
+        const listContainer = document.getElementById('marketList');
+        listContainer.innerHTML = filtered.map(m => {
+            const score = calculateScore(m, currentPriority);
+            const scoreClass = score >= 3.5 ? 'high' : (score >= 2.0 ? 'medium' : 'low');
+            return `
+                <div class="market-item" onclick="flyTo(${m.lat}, ${m.lng})">
+                    <div class="market-name">
+                        ${m.name}
+                        <span class="market-mw">${m.mw} MW</span>
+                    </div>
+                    <div class="market-scores">
+                        <span>Grid: ${m.gridScore}/5</span>
+                        <span>Policy: ${m.policyScore}/5</span>
+                        <span>Cost: ${m.costScore}/5</span>
+                        <span class="score-badge ${scoreClass}">Score: ${score.toFixed(1)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Add markers
+        filtered.forEach(m => {
+            const score = calculateScore(m, currentPriority);
+            const color = getColor(score);
+            const radius = getRadius(m.mw);
+            
+            const marker = L.circleMarker([m.lat, m.lng], {
+                radius: radius,
+                fillColor: color,
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.7
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <b>${m.name}</b><br>
+                <b>MW Capacity:</b> ${m.mw} MW<br>
+                <b>Grid Score:</b> ${m.gridScore}/5<br>
+                <b>Policy Score:</b> ${m.policyScore}/5<br>
+                <b>Cost Score:</b> ${m.costScore}/5<br>
+                <b>Strategy Score:</b> ${score.toFixed(1)}/5<br>
+                <hr>
+                <small>${m.notes}</small><br>
+                <small><i>Source: APDCA Report 2025</i></small>
+            `);
+            
+            markers.push(marker);
+        });
+    }
+    
+    // Fly to function for sidebar clicks
+    window.flyTo = function(lat, lng) {
+        map.flyTo([lat, lng], 8, { duration: 1 });
+    };
+    
+    // Event listeners
+    document.getElementById('mwFilter').addEventListener('change', (e) => {
+        currentMwFilter = parseInt(e.target.value);
+        renderMap();
+    });
+    
+    document.getElementById('priorityFilter').addEventListener('change', (e) => {
+        currentPriority = e.target.value;
+        renderMap();
+    });
+    
+    // Initial render
+    renderMap();
+</script>
+</body>
+</html>
