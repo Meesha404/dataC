@@ -518,9 +518,6 @@ function renderMap() {
 
         markers.push(marker);
     });
-    <div style="margin-top: 20px; padding-top: 12px; border-top: 1px solid #0f3460; font-size: 0.65rem; color: #666; text-align: center;">
-    Built by <a href="https://www.linkedin.com/in/manisha-sharma22/" target="_blank" style="color: #e94560; text-decoration: none;">Manisha Sharma, MBA</a> — Feedback welcome
-</div>
 }
 
 window.flyTo = function(lat, lng) {
@@ -532,5 +529,8 @@ document.getElementById('priorityFilter').addEventListener('change', renderMap);
 
 renderMap();
 </script>
+<div style="position: fixed; bottom: 10px; right: 10px; background: rgba(22, 33, 62, 0.9); padding: 6px 12px; border-radius: 20px; font-size: 0.65rem; color: #888; backdrop-filter: blur(5px); z-index: 1000;">
+    Built by <a href="https://www.linkedin.com/in/manisha-sharma22/" target="_blank" style="color: #e94560; text-decoration: none;">Manisha Sharma, MBA</a> — Feedback welcome
+</div>
 </body>
 </html>
