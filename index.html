@@ -202,14 +202,14 @@
 <div class="container">
     <div id="map"></div>
     <div class="panel">
-        <h1>⚡ APAC DC Site Finder</h1>
+        <h1>APAC DC Site Finder</h1>
         <div class="subtitle">
             Where can you build your next AI data center?<br>
             Powered by APDCA 2025 report data.
         </div>
 
         <div class="filter-group">
-            <label>🎯 Your Target Capacity</label>
+            <label>Your Target Capacity</label>
             <div class="target-mw-display" id="mwDisplay">10 MW</div>
             <div class="target-mw-label">drag to change target size</div>
             <input type="range" id="mwSlider" min="10" max="500" step="10" value="10" />
@@ -235,12 +235,13 @@
         </div>
         
         <div class="filter-group">
-            <label>⚖️ Strategy Priority</label>
+            <label>Strategy Priority</label>
             <select id="priorityFilter">
-                <option value="balanced">Balanced (Grid + Policy + Cost)</option>
+                <option value="balanced">Balanced (Grid + Policy + Cost + TTR)</option>
                 <option value="grid">Grid First — power availability</option>
                 <option value="policy">Policy First — incentives & permits</option>
                 <option value="cost">Cost First — power price & land</option>
+                <option value="ttr">TTR First — speed to revenue (AI priority)</option>
             </select>
         </div>
 
@@ -252,7 +253,7 @@
             <div><span class="legend-dot" style="background:#f39c12;"></span> Medium suitability</div>
             <div><span class="legend-dot" style="background:#e74c3c;"></span> Low / constrained</div>
             <div><span class="legend-dot" style="background:#444;border:1px solid #888;"></span> Can't fit your target MW</div>
-            <div style="margin-top:6px;color:#666;">Bubble size = existing MW capacity<br>Source: APDCA Report 2025</div>
+            <div style="margin-top:6px;color:#666;">Bubble size = existing MW capacity<br>Source: APDCA Report 2025 | TTR = Time to Revenue (AI promo)</div>
         </div>
     </div>
 </div>
@@ -264,7 +265,7 @@ const markets = [
         lat: 35.8, lng: 140.15,
         existingMw: 150,
         maxAddMw: 600,
-        gridScore: 4, policyScore: 5, costScore: 3,
+        gridScore: 4, policyScore: 5, costScore: 3, ttrScore: 4,
         notes: "The 'Ginza of Data Centers.' Property tax revenue doubled in 10 years. Google, AWS, NTT, NEC all present. Proximity to major undersea cable landing.",
         source: "APDCA 2025 — Inzai case study"
     },
@@ -273,7 +274,7 @@ const markets = [
         lat: 35.68, lng: 139.76,
         existingMw: 900,
         maxAddMw: 400,
-        gridScore: 4, policyScore: 4, costScore: 2,
+        gridScore: 4, policyScore: 4, costScore: 2, ttrScore: 4,
         notes: "AWS Tokyo + Osaka projected ¥5.57T GDP contribution. AI Strategy Council active. High cost, land scarce.",
         source: "APDCA 2025 — Japan spotlight"
     },
@@ -282,7 +283,7 @@ const markets = [
         lat: 34.69, lng: 135.5,
         existingMw: 400,
         maxAddMw: 500,
-        gridScore: 4, policyScore: 4, costScore: 2,
+        gridScore: 4, policyScore: 4, costScore: 2, ttrScore: 4,
         notes: "AWS second cloud region. Disaster recovery site for Tokyo. Growing semiconductor cluster.",
         source: "APDCA 2025 — Japan spotlight"
     },
@@ -290,8 +291,8 @@ const markets = [
         name: "Selangor, Malaysia",
         lat: 3.07, lng: 101.52,
         existingMw: 800,
-        maxAddMw: 1000,  // Changed from 2000 to 1000
-        gridScore: 3, policyScore: 5, costScore: 4,
+        maxAddMw: 1000,
+        gridScore: 3, policyScore: 5, costScore: 4, ttrScore: 5,
         notes: "Google's RM 15B investment. MIDA approved 12 projects. Green Lane Pathway fast-tracks power connections. Klang Valley hub.",
         source: "APDCA 2025 — Malaysia spotlight"
     },
@@ -299,8 +300,8 @@ const markets = [
         name: "Johor, Malaysia",
         lat: 1.49, lng: 103.74,
         existingMw: 300,
-        maxAddMw: 1500,  // Changed from 3000 to 1500
-        gridScore: 3, policyScore: 4, costScore: 5,
+        maxAddMw: 1500,
+        gridScore: 3, policyScore: 4, costScore: 5, ttrScore: 4,
         notes: "Singapore overflow zone. Land abundant, low cost. Johor-Singapore SEZ. Pipeline exceeds 3.5 GW, but ~700 MW currently under construction. DC market growing at 22.4% CAGR to 2030.",
         source: "APDCA 2025 + Arizton Nov 2025"
     },
@@ -309,7 +310,7 @@ const markets = [
         lat: 1.35, lng: 103.82,
         existingMw: 1200,
         maxAddMw: 150,
-        gridScore: 5, policyScore: 4, costScore: 1,
+        gridScore: 5, policyScore: 4, costScore: 1, ttrScore: 3,
         notes: "DC jobs pay 35% above national avg. 85% higher land productivity than national avg. Smart Nation 2.0. But: land moratorium risk, very high cost.",
         source: "APDCA 2025 — Singapore spotlight"
     },
@@ -318,7 +319,7 @@ const markets = [
         lat: 13.08, lng: 80.28,
         existingMw: 250,
         maxAddMw: 1500,
-        gridScore: 3, policyScore: 3, costScore: 5,
+        gridScore: 3, policyScore: 3, costScore: 5, ttrScore: 3,
         notes: "Ambattur DC park: USD 23M direct GST + USD 340M indirect per year. Subsea cable hub. India only 3% of global DC capacity — huge gap.",
         source: "APDCA 2025 — India spotlight"
     },
@@ -327,7 +328,7 @@ const markets = [
         lat: 19.08, lng: 72.88,
         existingMw: 400,
         maxAddMw: 1800,
-        gridScore: 3, policyScore: 3, costScore: 4,
+        gridScore: 3, policyScore: 3, costScore: 4, ttrScore: 3,
         notes: "Microsoft DCs: USD 9.5B revenue + 1.5M jobs created 2016–2020. Financial hub. Cloud sector could contribute 8% of India GDP by 2026.",
         source: "APDCA 2025 — India spotlight"
     },
@@ -336,7 +337,7 @@ const markets = [
         lat: 17.39, lng: 78.49,
         existingMw: 200,
         maxAddMw: 1200,
-        gridScore: 3, policyScore: 3, costScore: 5,
+        gridScore: 3, policyScore: 3, costScore: 5, ttrScore: 4,
         notes: "Lower land cost than Mumbai. Strong IT talent pool. State-level DC policy incentives. India Digital Economy fastest growing sector.",
         source: "APDCA 2025 — India spotlight"
     },
@@ -345,7 +346,7 @@ const markets = [
         lat: -37.81, lng: 144.96,
         existingMw: 400,
         maxAddMw: 600,
-        gridScore: 5, policyScore: 3, costScore: 3,
+        gridScore: 5, policyScore: 3, costScore: 3, ttrScore: 4,
         notes: "AWS AUD 15.9B GDP impact 2022–2037. 14th best tech city globally. #2 APAC for new software HQs. NSW fast-track investment authority.",
         source: "APDCA 2025 — Australia spotlight"
     },
@@ -354,7 +355,7 @@ const markets = [
         lat: -33.87, lng: 151.21,
         existingMw: 500,
         maxAddMw: 500,
-        gridScore: 5, policyScore: 3, costScore: 2,
+        gridScore: 5, policyScore: 3, costScore: 2, ttrScore: 4,
         notes: "Major subsea cable landing hub. Higher land costs. AUD 45–115B gen AI economic value by 2030. 9,600 DC jobs nationwide doubling by 2030.",
         source: "APDCA 2025 — Australia spotlight"
     },
@@ -363,7 +364,7 @@ const markets = [
         lat: 13.74, lng: 100.5,
         existingMw: 150,
         maxAddMw: 1000,
-        gridScore: 2, policyScore: 3, costScore: 4,
+        gridScore: 2, policyScore: 3, costScore: 4, ttrScore: 2,
         notes: "Cloud First mandate via Government DC & Cloud system (Oct 2025). Emerging SE Asia hub. Grid upgrades needed.",
         source: "APDCA 2025 — regional data"
     },
@@ -372,7 +373,7 @@ const markets = [
         lat: -6.21, lng: 106.85,
         existingMw: 200,
         maxAddMw: 1500,
-        gridScore: 2, policyScore: 3, costScore: 4,
+        gridScore: 2, policyScore: 3, costScore: 4, ttrScore: 2,
         notes: "Former Comms Minister: DCs are critical infrastructure. Power price competitive. Batam-Bintan corridor emerging. Grid reliability key watch item.",
         source: "APDCA 2025 — regional data"
     },
@@ -381,7 +382,7 @@ const markets = [
         lat: 37.57, lng: 126.98,
         existingMw: 500,
         maxAddMw: 500,
-        gridScore: 4, policyScore: 3, costScore: 2,
+        gridScore: 4, policyScore: 3, costScore: 2, ttrScore: 4,
         notes: "Seongcho-gu Yangjae AI Innovation Zone targets 1,000 startups. Chuncheon DCs generate KRW 10B/yr tax revenue. K-Digital Platform talent program.",
         source: "APDCA 2025 — regional data"
     },
@@ -390,18 +391,31 @@ const markets = [
         lat: -36.85, lng: 174.76,
         existingMw: 120,
         maxAddMw: 400,
-        gridScore: 5, policyScore: 3, costScore: 3,
+        gridScore: 5, policyScore: 3, costScore: 3, ttrScore: 3,
         notes: "ONLY APAC market in global top 10 for renewable energy (Cushman & Wakefield 2025). Geothermal + hydro power. Small market but cleanest grid in region.",
         source: "APDCA 2025 + C&W 2025"
     }
 ];
 
 function calculateScore(market, priority) {
-    let w = { grid: 0.4, policy: 0.3, cost: 0.3 };
-    if (priority === "grid")   w = { grid: 0.7, policy: 0.15, cost: 0.15 };
-    if (priority === "policy") w = { grid: 0.2, policy: 0.6,  cost: 0.2  };
-    if (priority === "cost")   w = { grid: 0.2, policy: 0.2,  cost: 0.6  };
-    return (market.gridScore * w.grid) + (market.policyScore * w.policy) + (market.costScore * w.cost);
+    let weights = { grid: 0.35, policy: 0.25, cost: 0.25, ttr: 0.15 };
+    
+    if (priority === "grid") {
+        weights = { grid: 0.55, policy: 0.15, cost: 0.15, ttr: 0.15 };
+    } else if (priority === "policy") {
+        weights = { grid: 0.15, policy: 0.55, cost: 0.15, ttr: 0.15 };
+    } else if (priority === "cost") {
+        weights = { grid: 0.15, policy: 0.15, cost: 0.55, ttr: 0.15 };
+    } else if (priority === "ttr") {
+        weights = { grid: 0.25, policy: 0.25, cost: 0.25, ttr: 0.25 };
+    } else { // balanced
+        weights = { grid: 0.35, policy: 0.25, cost: 0.25, ttr: 0.15 };
+    }
+    
+    return (market.gridScore * weights.grid) + 
+           (market.policyScore * weights.policy) + 
+           (market.costScore * weights.cost) + 
+           (market.ttrScore * weights.ttr);
 }
 
 function getColor(score, market, targetMw) {
@@ -474,6 +488,7 @@ function renderMap() {
                     <span>Grid: ${m.gridScore}/5</span>
                     <span>Policy: ${m.policyScore}/5</span>
                     <span>Cost: ${m.costScore}/5</span>
+                    <span>TTR: ${m.ttrScore}/5</span>
                 </div>
             </div>
         `;
@@ -510,9 +525,12 @@ function renderMap() {
                     <tr><td>Grid reliability</td><td style="text-align:right;font-weight:bold;">${m.gridScore}/5</td></tr>
                     <tr><td>Policy/incentives</td><td style="text-align:right;font-weight:bold;">${m.policyScore}/5</td></tr>
                     <tr><td>Cost competitiveness</td><td style="text-align:right;font-weight:bold;">${m.costScore}/5</td></tr>
+                    <tr><td>TTR (Time to Revenue)</td><td style="text-align:right;font-weight:bold;">${m.ttrScore}/5</td></tr>
                 </table>
                 <hr style="margin:6px 0;border-color:#eee;">
                 <small style="color:#555;">${m.notes}</small>
+                <hr style="margin:6px 0;border-color:#eee;">
+                <small style="color:#888;">TTR proxy: BTM policy + connection wait + AI workload mix (AI = promotor, cloud = detractor)</small>
             </div>
         `, { maxWidth: 260 });
 
